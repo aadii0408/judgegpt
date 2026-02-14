@@ -14,7 +14,127 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      evaluations: {
+        Row: {
+          concerns: string[]
+          created_at: string
+          id: string
+          judge_name: string
+          judge_type: string
+          project_id: string
+          reasoning: string
+          score: number
+          strengths: string[]
+          weaknesses: string[]
+        }
+        Insert: {
+          concerns?: string[]
+          created_at?: string
+          id?: string
+          judge_name: string
+          judge_type: string
+          project_id: string
+          reasoning?: string
+          score?: number
+          strengths?: string[]
+          weaknesses?: string[]
+        }
+        Update: {
+          concerns?: string[]
+          created_at?: string
+          id?: string
+          judge_name?: string
+          judge_type?: string
+          project_id?: string
+          reasoning?: string
+          score?: number
+          strengths?: string[]
+          weaknesses?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      final_reports: {
+        Row: {
+          consensus_strengths: string[]
+          created_at: string
+          critical_weaknesses: string[]
+          debate_transcript: string | null
+          id: string
+          improvements: string[]
+          overall_score: number
+          project_id: string
+          verdict: string
+        }
+        Insert: {
+          consensus_strengths?: string[]
+          created_at?: string
+          critical_weaknesses?: string[]
+          debate_transcript?: string | null
+          id?: string
+          improvements?: string[]
+          overall_score?: number
+          project_id: string
+          verdict?: string
+        }
+        Update: {
+          consensus_strengths?: string[]
+          created_at?: string
+          critical_weaknesses?: string[]
+          debate_transcript?: string | null
+          id?: string
+          improvements?: string[]
+          overall_score?: number
+          project_id?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "final_reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          architecture: string
+          created_at: string
+          demo_transcript: string | null
+          description: string
+          id: string
+          name: string
+          track: Database["public"]["Enums"]["project_track"]
+        }
+        Insert: {
+          architecture: string
+          created_at?: string
+          demo_transcript?: string | null
+          description: string
+          id?: string
+          name: string
+          track?: Database["public"]["Enums"]["project_track"]
+        }
+        Update: {
+          architecture?: string
+          created_at?: string
+          demo_transcript?: string | null
+          description?: string
+          id?: string
+          name?: string
+          track?: Database["public"]["Enums"]["project_track"]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +143,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      project_track: "AI Agents" | "Web3" | "DevTools" | "Healthcare" | "Other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +270,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      project_track: ["AI Agents", "Web3", "DevTools", "Healthcare", "Other"],
+    },
   },
 } as const
