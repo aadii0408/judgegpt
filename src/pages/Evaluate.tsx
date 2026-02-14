@@ -166,7 +166,6 @@ export default function Evaluate() {
         <div className="grid gap-8 lg:grid-cols-[350px_1fr]">
           <aside className="hidden lg:block space-y-6">
             <ProjectSummary project={project} />
-            <EditableJudgePanel customJudges={customJudges} onUpdateJudges={handleUpdateJudges} />
           </aside>
           <div className="space-y-4">
             <h2 className="font-logo text-2xl font-bold tracking-wider">LIVE EVALUATION</h2>
