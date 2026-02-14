@@ -54,11 +54,25 @@ export default function Report() {
     return () => clearInterval(interval);
   }, [report]);
 
-  const chartData = evaluations.map((e, i) => ({
-    name: JUDGES[i]?.name.split(" ").pop() || e.judge_name,
-    score: Number(e.score),
-    fill: JUDGE_COLORS[i] || "#888",
-  }));
+  // Deduplicate evaluations by judge_type, keeping the latest one
+  const uniqueEvals = Object.values(
+    evaluations.reduce((acc, e) => {
+      if (!acc[e.judge_type] || new Date(e.created_at) > new Date(acc[e.judge_type].created_at)) {
+        acc[e.judge_type] = e;
+      }
+      return acc;
+    }, {} as Record<string, Evaluation>)
+  );
+
+  const chartData = uniqueEvals.map((e) => {
+    const judge = JUDGES.find(j => j.type === e.judge_type);
+    const colorIndex = JUDGES.findIndex(j => j.type === e.judge_type);
+    return {
+      name: judge?.role || e.judge_type,
+      score: Number(e.score),
+      fill: JUDGE_COLORS[colorIndex] || "#888",
+    };
+  });
 
   const stopVoice = () => {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
