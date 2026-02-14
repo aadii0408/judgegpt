@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        logo: ["Orbitron", "sans-serif"],
+        body: ["Space Grotesk", "system-ui", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -100,6 +104,10 @@ export default {
           "0%, 100%": { boxShadow: "0 0 5px 0 currentColor" },
           "50%": { boxShadow: "0 0 20px 5px currentColor" },
         },
+        "float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -107,6 +115,7 @@ export default {
         "score-reveal": "score-reveal 0.6s ease-out forwards",
         "fade-in-up": "fade-in-up 0.5s ease-out forwards",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "float": "float 3s ease-in-out infinite",
       },
     },
   },

@@ -19,7 +19,7 @@ export const JUDGES: Judge[] = [
     bgClass: "bg-judge-technical",
     borderClass: "border-judge-technical",
     textClass: "text-judge-technical",
-    voiceId: "JBFqnCBsd6RMkjVDRZzb", // George
+    voiceId: "JBFqnCBsd6RMkjVDRZzb",
     initials: "AC",
   },
   {
@@ -30,7 +30,7 @@ export const JUDGES: Judge[] = [
     bgClass: "bg-judge-business",
     borderClass: "border-judge-business",
     textClass: "text-judge-business",
-    voiceId: "EXAVITQu4vr4xnSDxMaL", // Sarah
+    voiceId: "EXAVITQu4vr4xnSDxMaL",
     initials: "MP",
   },
   {
@@ -41,7 +41,7 @@ export const JUDGES: Judge[] = [
     bgClass: "bg-judge-product",
     borderClass: "border-judge-product",
     textClass: "text-judge-product",
-    voiceId: "onwK4e9ZLuTAKqWW03F9", // Daniel
+    voiceId: "onwK4e9ZLuTAKqWW03F9",
     initials: "JB",
   },
   {
@@ -52,7 +52,7 @@ export const JUDGES: Judge[] = [
     bgClass: "bg-judge-risk",
     borderClass: "border-judge-risk",
     textClass: "text-judge-risk",
-    voiceId: "CwhRBWXzGAHq8TQ4Fs17", // Roger
+    voiceId: "CwhRBWXzGAHq8TQ4Fs17",
     initials: "SR",
   },
   {
@@ -63,7 +63,7 @@ export const JUDGES: Judge[] = [
     bgClass: "bg-judge-innovation",
     borderClass: "border-judge-innovation",
     textClass: "text-judge-innovation",
-    voiceId: "pFZP5JQG7iQjIQuC4Bku", // Lily
+    voiceId: "pFZP5JQG7iQjIQuC4Bku",
     initials: "RK",
   },
 ];
@@ -91,6 +91,9 @@ export interface Project {
   architecture: string;
   demo_transcript: string | null;
   track: Track;
+  presentation_url: string | null;
+  website_url: string | null;
+  video_url: string | null;
   created_at: string;
 }
 
