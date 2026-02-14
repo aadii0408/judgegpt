@@ -23,13 +23,19 @@ interface LiveDebateProps {
 export default function LiveDebate({ evaluations, project, judges, onConsensus }: LiveDebateProps) {
   const [messages, setMessages] = useState<DebateMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [started, setStarted] = useState(false);
   const [currentSpeaker, setCurrentSpeaker] = useState<string | null>(null);
-  const [spokenIndex, setSpokenIndex] = useState(-1);
+  const [speakingIndex, setSpeakingIndex] = useState(-1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const abortRef = useRef(false);
+  const messagesRef = useRef<DebateMessage[]>([]);
+  const spokenCountRef = useRef(0);
+  const isSpeakingRef = useRef(false);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -42,7 +48,7 @@ export default function LiveDebate({ evaluations, project, judges, onConsensus }
   };
 
   const speakMessage = useCallback(async (text: string, voiceId: string): Promise<void> => {
-    if (isMuted || abortRef.current) return;
+    if (abortRef.current) return;
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
@@ -69,7 +75,7 @@ export default function LiveDebate({ evaluations, project, judges, onConsensus }
     } catch {
       // silently fail TTS
     }
-  }, [isMuted]);
+  }, []);
 
   const stopAudio = () => {
     if (audioRef.current) {
@@ -83,10 +89,54 @@ export default function LiveDebate({ evaluations, project, judges, onConsensus }
     setIsMuted(!isMuted);
   };
 
+  // Sequential voice playback - processes one message at a time
+  const processVoiceQueue = useCallback(async () => {
+    if (isSpeakingRef.current || isMuted) return;
+    isSpeakingRef.current = true;
+
+    while (spokenCountRef.current < messagesRef.current.length) {
+      if (abortRef.current || isMuted) break;
+      const idx = spokenCountRef.current;
+      const msg = messagesRef.current[idx];
+      const judge = getJudgeInfo(msg.speaker);
+      
+      setCurrentSpeaker(msg.speaker);
+      setSpeakingIndex(idx);
+      
+      if (judge && !isMuted) {
+        await speakMessage(msg.message, judge.voiceId);
+      }
+      
+      // Small pause between speakers for natural feel
+      if (!abortRef.current) {
+        await new Promise(r => setTimeout(r, 400));
+      }
+      
+      spokenCountRef.current = idx + 1;
+    }
+
+    setCurrentSpeaker(null);
+    setSpeakingIndex(-1);
+    isSpeakingRef.current = false;
+  }, [isMuted, speakMessage, judges]);
+
+  // Trigger voice queue when new messages arrive
+  useEffect(() => {
+    if (messages.length > spokenCountRef.current && !isMuted && !isSpeakingRef.current) {
+      processVoiceQueue();
+    }
+  }, [messages.length, isMuted, processVoiceQueue]);
+
+  // Auto-start debate on mount
+  useEffect(() => {
+    startDebate();
+    return () => { abortRef.current = true; stopAudio(); };
+  }, []);
+
   const startDebate = async () => {
-    setStarted(true);
     setIsStreaming(true);
     setMessages([]);
+    spokenCountRef.current = 0;
     abortRef.current = false;
 
     try {
@@ -166,50 +216,13 @@ export default function LiveDebate({ evaluations, project, judges, onConsensus }
     }
   };
 
-  // Voice playback effect - speak new messages as they arrive
-  useEffect(() => {
-    if (isMuted || messages.length === 0 || spokenIndex >= messages.length - 1) return;
-    
-    const speakNext = async () => {
-      for (let i = spokenIndex + 1; i < messages.length; i++) {
-        if (abortRef.current || isMuted) break;
-        const msg = messages[i];
-        const judge = getJudgeInfo(msg.speaker);
-        setCurrentSpeaker(msg.speaker);
-        setSpokenIndex(i);
-        if (judge) {
-          await speakMessage(msg.message, judge.voiceId);
-        }
-      }
-      if (!isStreaming) setCurrentSpeaker(null);
-    };
-
-    speakNext();
-  }, [messages.length, isMuted]);
-
   const stopDebate = () => {
     abortRef.current = true;
     stopAudio();
     setCurrentSpeaker(null);
+    setSpeakingIndex(-1);
     setIsMuted(true);
   };
-
-  if (!started) {
-    return (
-      <Card className="border-2 border-dashed border-foreground/20 glow-border">
-        <CardContent className="py-12 text-center space-y-4">
-          <Swords className="h-12 w-12 mx-auto text-muted-foreground" />
-          <h3 className="font-logo text-lg tracking-wider font-bold">LIVE VOICE DEBATE</h3>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            All judges will debate your project live with voice, challenge each other's reasoning, and reach a consensus score.
-          </p>
-          <Button size="lg" onClick={startDebate} className="font-logo tracking-wider">
-            <Swords className="mr-2 h-4 w-4" /> START LIVE DEBATE
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card className="border-2 border-foreground/10">
@@ -241,7 +254,7 @@ export default function LiveDebate({ evaluations, project, judges, onConsensus }
           {messages.map((msg, i) => {
             const judge = getJudgeInfo(msg.speaker);
             const isConsensus = msg.type === "final";
-            const isSpeaking = currentSpeaker === msg.speaker && i === spokenIndex;
+            const isSpeaking = currentSpeaker === msg.speaker && i === speakingIndex;
 
             if (isConsensus) {
               return (
