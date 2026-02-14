@@ -105,42 +105,158 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
+          additional_notes: string | null
+          ai_summary: Json | null
           architecture: string
           created_at: string
           demo_transcript: string | null
+          demo_video_link: string | null
           description: string
+          github_link: string | null
           id: string
           name: string
+          pitch_deck_url: string | null
           presentation_url: string | null
+          problem_statement: string | null
+          status: string | null
+          team_name: string | null
+          tech_stack_used: string | null
           track: Database["public"]["Enums"]["project_track"]
           video_url: string | null
           website_url: string | null
         }
         Insert: {
-          architecture: string
+          additional_notes?: string | null
+          ai_summary?: Json | null
+          architecture?: string
           created_at?: string
           demo_transcript?: string | null
+          demo_video_link?: string | null
           description: string
+          github_link?: string | null
           id?: string
           name: string
+          pitch_deck_url?: string | null
           presentation_url?: string | null
+          problem_statement?: string | null
+          status?: string | null
+          team_name?: string | null
+          tech_stack_used?: string | null
           track?: Database["public"]["Enums"]["project_track"]
           video_url?: string | null
           website_url?: string | null
         }
         Update: {
+          additional_notes?: string | null
+          ai_summary?: Json | null
           architecture?: string
           created_at?: string
           demo_transcript?: string | null
+          demo_video_link?: string | null
           description?: string
+          github_link?: string | null
           id?: string
           name?: string
+          pitch_deck_url?: string | null
           presentation_url?: string | null
+          problem_statement?: string | null
+          status?: string | null
+          team_name?: string | null
+          tech_stack_used?: string | null
           track?: Database["public"]["Enums"]["project_track"]
           video_url?: string | null
           website_url?: string | null
+        }
+        Relationships: []
+      }
+      scores: {
+        Row: {
+          created_at: string | null
+          feasibility: number | null
+          id: string
+          impact: number | null
+          innovation: number | null
+          judge_id: string
+          justification: string
+          presentation: number | null
+          project_id: string
+          technical: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          feasibility?: number | null
+          id?: string
+          impact?: number | null
+          innovation?: number | null
+          judge_id: string
+          justification?: string
+          presentation?: number | null
+          project_id: string
+          technical?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          feasibility?: number | null
+          id?: string
+          impact?: number | null
+          innovation?: number | null
+          judge_id?: string
+          justification?: string
+          presentation?: number | null
+          project_id?: string
+          technical?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scores_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -149,9 +265,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "judge" | "user"
       project_track: "AI Agents" | "Web3" | "DevTools" | "Healthcare" | "Other"
     }
     CompositeTypes: {
@@ -280,6 +403,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "judge", "user"],
       project_track: ["AI Agents", "Web3", "DevTools", "Healthcare", "Other"],
     },
   },
