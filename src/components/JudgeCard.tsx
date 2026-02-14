@@ -4,21 +4,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
-import { JUDGES, type Evaluation } from "@/lib/judges";
-import { Volume2, ChevronDown, CheckCircle, Loader2 } from "lucide-react";
+import { type Evaluation, type Judge } from "@/lib/judges";
+import { Volume2, VolumeX, ChevronDown, CheckCircle, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 interface JudgeCardProps {
   evaluation: Evaluation | null;
-  judgeIndex: number;
+  judge: Judge;
   isActive: boolean;
   isComplete: boolean;
   onPlayVoice?: (text: string, voiceId: string) => void;
+  onStopVoice?: () => void;
   isPlayingVoice?: boolean;
+  isThisPlaying?: boolean;
 }
 
-export default function JudgeCard({ evaluation, judgeIndex, isActive, isComplete, onPlayVoice, isPlayingVoice }: JudgeCardProps) {
-  const judge = JUDGES[judgeIndex];
+export default function JudgeCard({ evaluation, judge, isActive, isComplete, onPlayVoice, onStopVoice, isPlayingVoice, isThisPlaying }: JudgeCardProps) {
   const [displayedText, setDisplayedText] = useState("");
   const [showScore, setShowScore] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -26,7 +27,6 @@ export default function JudgeCard({ evaluation, judgeIndex, isActive, isComplete
 
   useEffect(() => {
     if (evaluation && isComplete) {
-      // Typing effect for reasoning
       const text = evaluation.reasoning;
       let i = 0;
       setDisplayedText("");
@@ -66,7 +66,7 @@ export default function JudgeCard({ evaluation, judgeIndex, isActive, isComplete
 
   if (isActive && !isComplete) {
     return (
-      <Card className={`border-2 ${judge.borderClass} animate-pulse-glow`} style={{ color: `hsl(var(--judge-${judge.type}))` }}>
+      <Card className={`border-2 ${judge.borderClass} animate-pulse-glow`}>
         <CardHeader className="flex flex-row items-center gap-3 pb-2">
           <Avatar className="h-10 w-10">
             <AvatarFallback className={`${judge.bgClass} text-white text-xs`}>{judge.initials}</AvatarFallback>
@@ -99,16 +99,31 @@ export default function JudgeCard({ evaluation, judgeIndex, isActive, isComplete
           <p className={`text-xs ${judge.textClass}`}>{judge.role}</p>
         </div>
         <div className="flex items-center gap-2">
-          {onPlayVoice && evaluation && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => onPlayVoice(evaluation.reasoning, judge.voiceId)}
-              disabled={isPlayingVoice}
-            >
-              <Volume2 className={`h-4 w-4 ${isPlayingVoice ? "animate-pulse text-primary" : ""}`} />
-            </Button>
+          {evaluation && (
+            <>
+              {isThisPlaying ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={onStopVoice}
+                >
+                  <VolumeX className="h-4 w-4 text-destructive animate-pulse" />
+                </Button>
+              ) : (
+                onPlayVoice && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onPlayVoice(evaluation.reasoning, judge.voiceId)}
+                    disabled={isPlayingVoice}
+                  >
+                    <Volume2 className="h-4 w-4" />
+                  </Button>
+                )
+              )}
+            </>
           )}
           {showScore && evaluation && (
             <div className={`text-2xl font-bold animate-score-reveal ${getScoreColor(evaluation.score)}`}>

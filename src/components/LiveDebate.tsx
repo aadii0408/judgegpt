@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { JUDGES, type Evaluation, type Project } from "@/lib/judges";
-import { Swords, Loader2 } from "lucide-react";
+import { type Evaluation, type Project, type Judge } from "@/lib/judges";
+import { Swords, Loader2, Volume2, VolumeX } from "lucide-react";
 
 interface DebateMessage {
   speaker: string;
@@ -16,31 +16,78 @@ interface DebateMessage {
 interface LiveDebateProps {
   evaluations: Evaluation[];
   project: Project;
+  judges: Judge[];
   onConsensus?: (score: number, message: string) => void;
 }
 
-export default function LiveDebate({ evaluations, project, onConsensus }: LiveDebateProps) {
+export default function LiveDebate({ evaluations, project, judges, onConsensus }: LiveDebateProps) {
   const [messages, setMessages] = useState<DebateMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [started, setStarted] = useState(false);
-  const [streamBuffer, setStreamBuffer] = useState("");
+  const [currentSpeaker, setCurrentSpeaker] = useState<string | null>(null);
+  const [spokenIndex, setSpokenIndex] = useState(-1);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const abortRef = useRef(false);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, streamBuffer]);
+  }, [messages, currentSpeaker]);
 
   const getJudgeInfo = (name: string) => {
-    return JUDGES.find(j => name.toLowerCase().includes(j.name.split(" ")[0].toLowerCase()));
+    return judges.find(j => name.toLowerCase().includes(j.name.split(" ")[0].toLowerCase()));
+  };
+
+  const speakMessage = useCallback(async (text: string, voiceId: string): Promise<void> => {
+    if (isMuted || abortRef.current) return;
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ text, voiceId }),
+        }
+      );
+      if (!response.ok || abortRef.current) return;
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      return new Promise((resolve) => {
+        audio.onended = () => { audioRef.current = null; resolve(); };
+        audio.onerror = () => { audioRef.current = null; resolve(); };
+        audio.play().catch(() => resolve());
+      });
+    } catch {
+      // silently fail TTS
+    }
+  }, [isMuted]);
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+  };
+
+  const toggleMute = () => {
+    if (!isMuted) stopAudio();
+    setIsMuted(!isMuted);
   };
 
   const startDebate = async () => {
     setStarted(true);
     setIsStreaming(true);
     setMessages([]);
-    setStreamBuffer("");
+    abortRef.current = false;
 
     try {
       const resp = await fetch(
@@ -85,26 +132,17 @@ export default function LiveDebate({ evaluations, project, onConsensus }: LiveDe
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               fullText += content;
-              setStreamBuffer(fullText);
 
-              // Try to parse complete JSONL lines from accumulated text
               const lines = fullText.split("\n");
               const parsedMessages: DebateMessage[] = [];
-              let remainder = "";
 
               for (const l of lines) {
                 const trimmed = l.trim();
-                if (!trimmed) continue;
-                // Strip markdown code fences
-                if (trimmed.startsWith("```")) continue;
+                if (!trimmed || trimmed.startsWith("```")) continue;
                 try {
                   const msg = JSON.parse(trimmed);
-                  if (msg.speaker && msg.message) {
-                    parsedMessages.push(msg);
-                  }
-                } catch {
-                  remainder = trimmed;
-                }
+                  if (msg.speaker && msg.message) parsedMessages.push(msg);
+                } catch { /* incomplete */ }
               }
 
               if (parsedMessages.length > 0) {
@@ -128,14 +166,42 @@ export default function LiveDebate({ evaluations, project, onConsensus }: LiveDe
     }
   };
 
+  // Voice playback effect - speak new messages as they arrive
+  useEffect(() => {
+    if (isMuted || messages.length === 0 || spokenIndex >= messages.length - 1) return;
+    
+    const speakNext = async () => {
+      for (let i = spokenIndex + 1; i < messages.length; i++) {
+        if (abortRef.current || isMuted) break;
+        const msg = messages[i];
+        const judge = getJudgeInfo(msg.speaker);
+        setCurrentSpeaker(msg.speaker);
+        setSpokenIndex(i);
+        if (judge) {
+          await speakMessage(msg.message, judge.voiceId);
+        }
+      }
+      if (!isStreaming) setCurrentSpeaker(null);
+    };
+
+    speakNext();
+  }, [messages.length, isMuted]);
+
+  const stopDebate = () => {
+    abortRef.current = true;
+    stopAudio();
+    setCurrentSpeaker(null);
+    setIsMuted(true);
+  };
+
   if (!started) {
     return (
       <Card className="border-2 border-dashed border-foreground/20 glow-border">
         <CardContent className="py-12 text-center space-y-4">
           <Swords className="h-12 w-12 mx-auto text-muted-foreground" />
-          <h3 className="font-logo text-lg tracking-wider font-bold">LIVE JUDGE DEBATE</h3>
+          <h3 className="font-logo text-lg tracking-wider font-bold">LIVE VOICE DEBATE</h3>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            All judges will debate your project live, challenge each other's reasoning, and reach a consensus score.
+            All judges will debate your project live with voice, challenge each other's reasoning, and reach a consensus score.
           </p>
           <Button size="lg" onClick={startDebate} className="font-logo tracking-wider">
             <Swords className="mr-2 h-4 w-4" /> START LIVE DEBATE
@@ -150,14 +216,24 @@ export default function LiveDebate({ evaluations, project, onConsensus }: LiveDe
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="font-logo text-sm tracking-wider flex items-center gap-2">
-            <Swords className="h-4 w-4" /> LIVE DEBATE
+            <Swords className="h-4 w-4" /> LIVE VOICE DEBATE
           </CardTitle>
-          {isStreaming && (
-            <Badge variant="outline" className="animate-pulse text-[10px] border-destructive text-destructive">
-              <span className="w-2 h-2 rounded-full bg-destructive mr-1.5 inline-block animate-pulse" />
-              LIVE
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {(isStreaming || currentSpeaker) && (
+              <Button variant="destructive" size="sm" onClick={stopDebate} className="font-logo text-[10px] tracking-wider">
+                STOP
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleMute}>
+              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </Button>
+            {isStreaming && (
+              <Badge variant="outline" className="animate-pulse text-[10px] border-destructive text-destructive">
+                <span className="w-2 h-2 rounded-full bg-destructive mr-1.5 inline-block animate-pulse" />
+                LIVE
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -165,6 +241,7 @@ export default function LiveDebate({ evaluations, project, onConsensus }: LiveDe
           {messages.map((msg, i) => {
             const judge = getJudgeInfo(msg.speaker);
             const isConsensus = msg.type === "final";
+            const isSpeaking = currentSpeaker === msg.speaker && i === spokenIndex;
 
             if (isConsensus) {
               return (
@@ -179,7 +256,7 @@ export default function LiveDebate({ evaluations, project, onConsensus }: LiveDe
             }
 
             return (
-              <div key={i} className={`flex gap-3 animate-fade-in-up`} style={{ animationDelay: `${i * 50}ms` }}>
+              <div key={i} className={`flex gap-3 animate-fade-in-up ${isSpeaking ? "ring-2 ring-primary/50 rounded-lg" : ""}`} style={{ animationDelay: `${i * 50}ms` }}>
                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarFallback className={`text-[10px] font-logo ${judge?.bgClass || "bg-secondary"} text-white`}>
                     {judge?.initials || msg.speaker.slice(0, 2).toUpperCase()}
@@ -188,7 +265,7 @@ export default function LiveDebate({ evaluations, project, onConsensus }: LiveDe
                 <div className={`flex-1 p-3 rounded-lg border ${judge ? `border-l-2 ${judge.borderClass}` : "border-border"} bg-card`}>
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`text-xs font-semibold ${judge?.textClass || "text-foreground"}`}>{msg.speaker}</span>
-                    <span className="text-[10px] text-muted-foreground">({msg.type})</span>
+                    {isSpeaking && <Volume2 className="h-3 w-3 animate-pulse text-primary" />}
                   </div>
                   <p className="text-sm text-foreground leading-relaxed">{msg.message}</p>
                 </div>
