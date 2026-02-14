@@ -13,6 +13,8 @@ import { TRACKS, JUDGES, EXAMPLE_PROJECT, type Track, type Project, type FinalRe
 import { Send, Eye, Globe, FileVideo, Upload, ArrowRight, Clock } from "lucide-react";
 import EditableJudgePanel from "@/components/EditableJudgePanel";
 import HowItWorks from "@/components/HowItWorks";
+import heroBg from "@/assets/hero-bg.jpg";
+import mascot from "@/assets/mascot.jpeg";
 
 function Header() {
   const navigate = useNavigate();
@@ -241,11 +243,30 @@ export default function Index() {
       <div className="fixed inset-0 pointer-events-none scanline opacity-30 z-10" />
       <Header />
       <main className="container mx-auto max-w-5xl px-4 relative z-20">
-        <section className="py-20 text-center">
-          <div className="inline-block mb-4">
-            <Badge variant="outline" className="font-logo text-[10px] tracking-[0.3em] border-foreground/20 px-4 py-1">AI-POWERED HACKATHON JUDGING</Badge>
+        <section className="relative py-20 text-center overflow-hidden rounded-2xl my-6">
+          {/* Hero Background */}
+          <div className="absolute inset-0 -z-10">
+            <img src={heroBg} alt="" className="w-full h-full object-cover opacity-40" />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background" />
           </div>
-          <h1 className="font-logo text-5xl md:text-7xl font-black tracking-[0.15em] mb-4">JUDGEGPT</h1>
+
+          {/* Floating Mascot */}
+          <div className="flex justify-center mb-6">
+            <div className="relative">
+              <img 
+                src={mascot} 
+                alt="JudgeGPT Mascot" 
+                className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-foreground/20 shadow-lg shadow-[hsl(var(--glow-cyan)/0.3)]"
+                style={{ animation: "float 3s ease-in-out infinite" }}
+              />
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[hsl(var(--success))] border-2 border-background flex items-center justify-center text-xs font-bold text-[hsl(var(--success-foreground))]">⚡</div>
+            </div>
+          </div>
+
+          <div className="inline-block mb-4">
+            <Badge variant="outline" className="font-logo text-[10px] tracking-[0.3em] border-foreground/20 px-4 py-1 backdrop-blur-sm">AI-POWERED HACKATHON JUDGING</Badge>
+          </div>
+          <h1 className="font-logo text-5xl md:text-7xl font-black tracking-[0.15em] mb-4 glow-text">JUDGEGPT</h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8">5 specialized AI judges evaluate your hackathon project with live voice debates, detailed scoring, and actionable feedback.</p>
           <Button size="lg" className="font-logo tracking-wider" onClick={() => document.getElementById('submit')?.scrollIntoView({ behavior: 'smooth' })}>
             SUBMIT YOUR PROJECT <ArrowRight className="ml-2 h-4 w-4" />
