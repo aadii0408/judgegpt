@@ -4,70 +4,140 @@
 
 **URL**: (https://judgegpt.lovable.app)
 
-## How can I edit this code?
+# 🏆 JudgeGPT – Autonomous Hackathon Evaluation Board
 
-There are several ways of editing your application.
+JudgeGPT is a multi-agent AI system that simulates a real hackathon judging panel.
 
-**Use Lovable**
+It evaluates projects across technical depth, business impact, product design, risk, and innovation — and predicts failure risks before launch.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Instead of biased or rushed judging, JudgeGPT provides structured, multi-perspective evaluation powered by autonomous agents.
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## 🚀 Why JudgeGPT?
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+In hackathons:
+- Judging is subjective
+- Technical depth gets missed
+- Business viability isn’t fully analyzed
+- Teams don’t know where they’ll lose points
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+JudgeGPT solves this by simulating a panel of specialized AI judges that independently evaluate and debate a project before generating a final verdict.
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 🧠 Multi-Agent Architecture
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+JudgeGPT consists of specialized agents:
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 🧠 Technical Judge Agent
+- Evaluates architecture
+- Validates agent autonomy
+- Checks tool usage
+- Scores infra maturity
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+### 💰 Business Impact Agent
+- Market size analysis
+- Monetization clarity
+- Real-world relevance
+- Adoption feasibility
 
-**Edit a file directly in GitHub**
+### 🎨 Product & UX Agent
+- Usability
+- Clarity
+- Demo strength
+- Presentation quality
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 🔐 Risk & Safety Agent
+- Edge case detection
+- Failure handling
+- Security awareness
+- Ethical implications
 
-**Use GitHub Codespaces**
+### 🚀 Innovation Agent
+- Originality
+- Differentiation
+- Competitive uniqueness
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 🚨 Failure Prediction Agent
+- Identifies weak execution assumptions
+- Simulates 3–6 month outcome risks
+- Predicts likely collapse points
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## ⚙️ How It Works
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. User submits:
+   - Project summary
+   - Architecture details
+   - Demo transcript
+   - Track selection
 
-## How can I deploy this project?
+2. Coordinator Agent distributes context to judge agents
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+3. Each agent independently:
+   - Scores the project
+   - Provides reasoning
+   - Flags weaknesses
 
-## Can I connect a custom domain to my Lovable project?
+4. Aggregator:
+   - Combines scores
+   - Resolves conflicts
+   - Generates final verdict
+   - Provides improvement roadmap
 
-Yes, you can!
+Optional: Roast Mode & Live Q&A simulation.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+---
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🔄 Example Output
+
+Final Score: 7.8 / 10
+
+Weakest Area:
+- Failure recovery demonstration unclear
+
+Strengths:
+- Strong innovation
+- Clear business application
+
+Failure Risk Prediction:
+- High risk at month 4 due to unrealistic CAC assumptions
+
+Suggested Improvements:
+- Add visible agent loop demo
+- Show persistent memory
+- Clarify monetization
+
+---
+
+## 🛠 Tech Stack
+
+- Multi-agent orchestration engine
+- Structured evaluation prompts
+- Context routing system
+- Failure simulation logic
+- Aggregation & scoring framework
+
+---
+
+## 💡 Use Cases
+
+- Hackathon rehearsal tool
+- Startup pitch refinement
+- Accelerator screening
+- Internal product evaluation
+- VC pre-due-diligence filter
+
+---
+
+## 🏁 Vision
+
+Before launching into the real world, simulate the judges, investors, and risks.
+
+JudgeGPT predicts blind spots before they cost you.
+
+---
+
+Built for autonomous agent systems.
