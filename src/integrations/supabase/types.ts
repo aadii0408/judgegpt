@@ -113,7 +113,10 @@ export type Database = {
           description: string
           id: string
           name: string
+          presentation_url: string | null
           track: Database["public"]["Enums"]["project_track"]
+          video_url: string | null
+          website_url: string | null
         }
         Insert: {
           architecture: string
@@ -122,7 +125,10 @@ export type Database = {
           description: string
           id?: string
           name: string
+          presentation_url?: string | null
           track?: Database["public"]["Enums"]["project_track"]
+          video_url?: string | null
+          website_url?: string | null
         }
         Update: {
           architecture?: string
@@ -131,7 +137,10 @@ export type Database = {
           description?: string
           id?: string
           name?: string
+          presentation_url?: string | null
           track?: Database["public"]["Enums"]["project_track"]
+          video_url?: string | null
+          website_url?: string | null
         }
         Relationships: []
       }
