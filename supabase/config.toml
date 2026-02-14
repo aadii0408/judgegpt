@@ -1,1 +1,16 @@
 project_id = "ucemsrgahswjldkyhfdi"
+
+[functions.evaluate-judge]
+verify_jwt = false
+
+[functions.generate-consensus]
+verify_jwt = false
+
+[functions.simulate-qa]
+verify_jwt = false
+
+[functions.run-debate]
+verify_jwt = false
+
+[functions.elevenlabs-tts]
+verify_jwt = false
