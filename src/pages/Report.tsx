@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Share2, MessageCircle, Volume2, Swords, Send } from "lucide-react";
+import { Share2, MessageCircle, Volume2, VolumeX, Send } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 const JUDGE_COLORS = ["hsl(195,100%,50%)", "hsl(120,100%,40%)", "hsl(280,100%,60%)", "hsl(30,100%,50%)", "hsl(330,100%,60%)"];
@@ -23,9 +23,8 @@ export default function Report() {
   const [qaQuestion, setQaQuestion] = useState("");
   const [qaResponse, setQaResponse] = useState<{ response: string; judge_name: string; judge_type: string } | null>(null);
   const [qaLoading, setQaLoading] = useState(false);
-  const [debate, setDebate] = useState<{ debate: string; highJudge: any; lowJudge: any } | null>(null);
-  const [debateLoading, setDebateLoading] = useState(false);
   const [playingVoice, setPlayingVoice] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -61,6 +60,11 @@ export default function Report() {
     fill: JUDGE_COLORS[i] || "#888",
   }));
 
+  const stopVoice = () => {
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    setPlayingVoice(false);
+  };
+
   const askQuestion = async () => {
     if (!qaQuestion.trim() || !project || evaluations.length === 0) return;
     setQaLoading(true);
@@ -77,11 +81,7 @@ export default function Report() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/simulate-qa`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
           body: JSON.stringify({ question: qaQuestion, project, evaluation: bestEval }),
         }
       );
@@ -96,47 +96,15 @@ export default function Report() {
     }
   };
 
-  const triggerDebate = async () => {
-    if (!project || evaluations.length < 2) return;
-    setDebateLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-debate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ evaluations, project }),
-        }
-      );
-      if (!response.ok) throw new Error("Debate failed");
-      const data = await response.json();
-      setDebate(data);
-      if (data.debate) {
-        await supabase.from("final_reports").update({ debate_transcript: data.debate }).eq("project_id", project.id);
-      }
-    } catch (err: any) {
-      toast({ title: "Debate failed", description: err.message, variant: "destructive" });
-    } finally {
-      setDebateLoading(false);
-    }
-  };
-
   const playVoice = async (text: string, voiceId: string) => {
+    stopVoice();
     setPlayingVoice(true);
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
           body: JSON.stringify({ text, voiceId }),
         }
       );
@@ -144,7 +112,8 @@ export default function Report() {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
-      audio.onended = () => setPlayingVoice(false);
+      audioRef.current = audio;
+      audio.onended = () => { setPlayingVoice(false); audioRef.current = null; };
       await audio.play();
     } catch {
       setPlayingVoice(false);
@@ -159,11 +128,6 @@ export default function Report() {
   if (!project || !report) {
     return <div className="flex min-h-screen items-center justify-center bg-background grid-bg"><div className="animate-pulse text-muted-foreground font-logo tracking-wider">LOADING REPORT...</div></div>;
   }
-
-  const scores = evaluations.map(e => Number(e.score));
-  const maxScore = Math.max(...scores);
-  const minScore = Math.min(...scores);
-  const hasDebateGap = maxScore - minScore >= 3;
 
   return (
     <div className="min-h-screen bg-background grid-bg">
@@ -231,39 +195,6 @@ export default function Report() {
           </Card>
         </div>
 
-        {hasDebateGap && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="font-logo text-sm tracking-wider flex items-center gap-2">
-                  <Swords className="h-4 w-4" /> JUDGE DEBATE
-                </CardTitle>
-                {!debate && (
-                  <Button size="sm" onClick={triggerDebate} disabled={debateLoading} className="font-logo text-[10px] tracking-wider">
-                    {debateLoading ? "GENERATING..." : "START DEBATE"}
-                  </Button>
-                )}
-              </div>
-              <p className="text-[10px] text-muted-foreground font-mono">Score gap: {(maxScore - minScore).toFixed(1)} pts</p>
-            </CardHeader>
-            {debate?.debate && (
-              <CardContent>
-                <div className="space-y-3 text-sm">
-                  {debate.debate.split("\n").filter(Boolean).map((line, i) => {
-                    const isHigh = line.startsWith(debate.highJudge?.name);
-                    const isLow = line.startsWith(debate.lowJudge?.name);
-                    return (
-                      <div key={i} className={`p-3 rounded-md ${isHigh ? "bg-success/10 border-l-2 border-success" : isLow ? "bg-destructive/10 border-l-2 border-destructive" : "bg-muted"}`}>
-                        <p>{line}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        )}
-
         <Card>
           <CardHeader>
             <CardTitle className="font-logo text-sm tracking-wider flex items-center gap-2">
@@ -284,9 +215,15 @@ export default function Report() {
                   {(() => {
                     const judge = JUDGES.find(j => j.name === qaResponse.judge_name);
                     return judge ? (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => playVoice(qaResponse.response, judge.voiceId)} disabled={playingVoice}>
-                        <Volume2 className="h-3 w-3" />
-                      </Button>
+                      playingVoice ? (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={stopVoice}>
+                          <VolumeX className="h-3 w-3 text-destructive" />
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => playVoice(qaResponse.response, judge.voiceId)}>
+                          <Volume2 className="h-3 w-3" />
+                        </Button>
+                      )
                     ) : null;
                   })()}
                 </div>

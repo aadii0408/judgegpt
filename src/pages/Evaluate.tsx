@@ -1,11 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { JUDGES, type Project, type Evaluation } from "@/lib/judges";
+import { JUDGES, type Project, type Evaluation, type Judge } from "@/lib/judges";
 import { useToast } from "@/hooks/use-toast";
 import JudgeCard from "@/components/JudgeCard";
 import ProjectSummary from "@/components/ProjectSummary";
 import LiveDebate from "@/components/LiveDebate";
+import EditableJudgePanel from "@/components/EditableJudgePanel";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight } from "lucide-react";
@@ -20,7 +21,19 @@ export default function Evaluate() {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [allDone, setAllDone] = useState(false);
   const [playingVoice, setPlayingVoice] = useState(false);
+  const [playingJudgeIndex, setPlayingJudgeIndex] = useState<number | null>(null);
   const [debateConsensus, setDebateConsensus] = useState<{ score: number; message: string } | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const [customJudges, setCustomJudges] = useState<Judge[]>(() => {
+    const saved = localStorage.getItem("judgegpt-custom-judges");
+    return saved ? JSON.parse(saved) : [...JUDGES];
+  });
+
+  const handleUpdateJudges = (judges: Judge[]) => {
+    setCustomJudges(judges);
+    localStorage.setItem("judgegpt-custom-judges", JSON.stringify(judges));
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -33,7 +46,7 @@ export default function Evaluate() {
   }, [id]);
 
   const evaluateJudge = useCallback(async (judgeIndex: number, proj: Project) => {
-    const judge = JUDGES[judgeIndex];
+    const judge = customJudges[judgeIndex];
     try {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evaluate-judge`, {
         method: "POST",
@@ -55,13 +68,13 @@ export default function Evaluate() {
       toast({ title: `${judge.name} evaluation failed`, description: err.message, variant: "destructive" });
       return null;
     }
-  }, [toast]);
+  }, [toast, customJudges]);
 
   const startEvaluation = useCallback(async () => {
     if (!project || isEvaluating) return;
     setIsEvaluating(true);
     const results: (Evaluation | null)[] = [...evaluations];
-    for (let i = 0; i < JUDGES.length; i++) {
+    for (let i = 0; i < customJudges.length; i++) {
       setCurrentJudge(i);
       const result = await evaluateJudge(i, project);
       results[i] = result;
@@ -70,14 +83,25 @@ export default function Evaluate() {
     setCurrentJudge(5);
     setIsEvaluating(false);
     setAllDone(true);
-  }, [project, isEvaluating, evaluateJudge, evaluations]);
+  }, [project, isEvaluating, evaluateJudge, evaluations, customJudges]);
 
   useEffect(() => {
     if (project && !isEvaluating && evaluations.every(e => e === null)) { startEvaluation(); }
   }, [project]);
 
-  const playVoice = async (text: string, voiceId: string) => {
+  const stopVoice = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setPlayingVoice(false);
+    setPlayingJudgeIndex(null);
+  };
+
+  const playVoice = async (text: string, voiceId: string, judgeIdx?: number) => {
+    stopVoice();
     setPlayingVoice(true);
+    if (judgeIdx !== undefined) setPlayingJudgeIndex(judgeIdx);
     try {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`, {
         method: "POST",
@@ -88,9 +112,10 @@ export default function Evaluate() {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
-      audio.onended = () => setPlayingVoice(false);
+      audioRef.current = audio;
+      audio.onended = () => { setPlayingVoice(false); setPlayingJudgeIndex(null); audioRef.current = null; };
       await audio.play();
-    } catch { toast({ title: "Voice playback failed", variant: "destructive" }); setPlayingVoice(false); }
+    } catch { toast({ title: "Voice playback failed", variant: "destructive" }); setPlayingVoice(false); setPlayingJudgeIndex(null); }
   };
 
   const handleConsensus = async (score: number, message: string) => {
@@ -139,13 +164,24 @@ export default function Evaluate() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid gap-8 lg:grid-cols-[350px_1fr]">
-          <aside className="hidden lg:block">
+          <aside className="hidden lg:block space-y-6">
             <ProjectSummary project={project} />
+            <EditableJudgePanel customJudges={customJudges} onUpdateJudges={handleUpdateJudges} />
           </aside>
           <div className="space-y-4">
             <h2 className="font-logo text-2xl font-bold tracking-wider">LIVE EVALUATION</h2>
-            {JUDGES.map((_, i) => (
-              <JudgeCard key={i} evaluation={evaluations[i]} judgeIndex={i} isActive={currentJudge === i && isEvaluating} isComplete={evaluations[i] !== null} onPlayVoice={playVoice} isPlayingVoice={playingVoice} />
+            {customJudges.map((judge, i) => (
+              <JudgeCard
+                key={i}
+                evaluation={evaluations[i]}
+                judge={judge}
+                isActive={currentJudge === i && isEvaluating}
+                isComplete={evaluations[i] !== null}
+                onPlayVoice={(text, voiceId) => playVoice(text, voiceId, i)}
+                onStopVoice={stopVoice}
+                isPlayingVoice={playingVoice}
+                isThisPlaying={playingJudgeIndex === i}
+              />
             ))}
             
             {allDone && (
@@ -153,6 +189,7 @@ export default function Evaluate() {
                 <LiveDebate
                   evaluations={evaluations.filter(Boolean) as Evaluation[]}
                   project={project}
+                  judges={customJudges}
                   onConsensus={handleConsensus}
                 />
                 {debateConsensus && (
