@@ -7,7 +7,7 @@ import JudgeCard from "@/components/JudgeCard";
 import ProjectSummary from "@/components/ProjectSummary";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Zap, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export default function Evaluate() {
   const { id } = useParams<{ id: string }>();
@@ -49,12 +49,10 @@ export default function Evaluate() {
           body: JSON.stringify({ project: proj, judgeType: judge.type }),
         }
       );
-
       if (!response.ok) throw new Error("Evaluation failed");
       const result = await response.json();
       if (result.error) throw new Error(result.error);
 
-      // Save to DB
       const { data: saved, error: saveError } = await supabase
         .from("evaluations")
         .insert({
@@ -69,7 +67,6 @@ export default function Evaluate() {
         })
         .select()
         .single();
-
       if (saveError) throw saveError;
       return saved as unknown as Evaluation;
     } catch (err: any) {
@@ -81,16 +78,13 @@ export default function Evaluate() {
   const startEvaluation = useCallback(async () => {
     if (!project || isEvaluating) return;
     setIsEvaluating(true);
-
     const results: (Evaluation | null)[] = [...evaluations];
-
     for (let i = 0; i < JUDGES.length; i++) {
       setCurrentJudge(i);
       const result = await evaluateJudge(i, project);
       results[i] = result;
       setEvaluations([...results]);
     }
-
     setCurrentJudge(5);
     setIsEvaluating(false);
     setAllDone(true);
@@ -132,9 +126,7 @@ export default function Evaluate() {
   const goToReport = async () => {
     const validEvals = evaluations.filter(Boolean) as Evaluation[];
     if (validEvals.length === 0) return;
-
     try {
-      // Generate consensus
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-consensus`,
         {
@@ -149,7 +141,6 @@ export default function Evaluate() {
       );
       if (!response.ok) throw new Error("Consensus generation failed");
       const report = await response.json();
-
       await supabase.from("final_reports").insert({
         project_id: project!.id,
         overall_score: report.overallScore,
@@ -158,7 +149,6 @@ export default function Evaluate() {
         improvements: report.improvements,
         verdict: report.verdict,
       });
-
       navigate(`/report/${project!.id}`);
     } catch (err: any) {
       toast({ title: "Report generation failed", description: err.message, variant: "destructive" });
@@ -166,21 +156,20 @@ export default function Evaluate() {
   };
 
   if (!project) {
-    return <div className="flex min-h-screen items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading project...</div></div>;
+    return <div className="flex min-h-screen items-center justify-center bg-background grid-bg"><div className="animate-pulse text-muted-foreground font-logo tracking-wider">LOADING...</div></div>;
   }
 
   const completedCount = evaluations.filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
+    <div className="min-h-screen bg-background grid-bg">
+      <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-            <Zap className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold">JudgeGPT</h1>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
+            <h1 className="font-logo text-xl font-bold tracking-[0.2em]">JUDGEGPT</h1>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">Judge {Math.min(currentJudge + 1, 5)} of 5</span>
+            <span className="text-xs text-muted-foreground font-mono">Judge {Math.min(currentJudge + 1, 5)} / 5</span>
             <Progress value={(completedCount / 5) * 100} className="w-32" />
           </div>
         </div>
@@ -191,9 +180,8 @@ export default function Evaluate() {
           <aside className="hidden lg:block">
             <ProjectSummary project={project} />
           </aside>
-
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Live Evaluation</h2>
+            <h2 className="font-logo text-2xl font-bold tracking-wider">LIVE EVALUATION</h2>
             {JUDGES.map((_, i) => (
               <JudgeCard
                 key={i}
@@ -205,11 +193,10 @@ export default function Evaluate() {
                 isPlayingVoice={playingVoice}
               />
             ))}
-
             {allDone && (
               <div className="flex justify-center pt-4">
-                <Button size="lg" onClick={goToReport}>
-                  View Final Report <ArrowRight className="ml-2 h-4 w-4" />
+                <Button size="lg" onClick={goToReport} className="font-logo tracking-wider">
+                  VIEW FINAL REPORT <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             )}

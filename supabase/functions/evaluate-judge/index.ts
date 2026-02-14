@@ -37,6 +37,9 @@ Track: ${project.track}
 Description: ${project.description}
 Architecture: ${project.architecture}
 ${project.demo_transcript ? `Demo Notes: ${project.demo_transcript}` : "No demo notes provided."}
+${project.website_url ? `Website: ${project.website_url}` : ""}
+${project.presentation_url ? `Presentation: ${project.presentation_url}` : ""}
+${project.video_url ? `Video Demo: ${project.video_url}` : ""}
 
 Evaluate this project. Respond ONLY with valid JSON (no markdown, no code fences):
 {
